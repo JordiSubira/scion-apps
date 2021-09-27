@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build go1.16
 // +build go1.16
 
 package main
@@ -70,6 +71,7 @@ func main() {
 	if bindAddress.IP != nil {
 		mux.Handle(bindAddress.IP.String()+"/skip.pac", http.HandlerFunc(handleWPAD))
 	}
+	mux.Handle("/scion-host", http.HandlerFunc(handleHostListRequest))
 	mux.Handle("/", proxy) // everything else
 
 	handler := interceptConnect(http.HandlerFunc(handleTunneling), mux)
@@ -96,6 +98,18 @@ func handleWPAD(w http.ResponseWriter, req *http.Request) {
 	}
 	w.Header().Set("content-type", "application/x-ns-proxy-autoconfig")
 	_, _ = w.Write(buf.Bytes())
+}
+
+func handleHostListRequest(w http.ResponseWriter, req *http.Request) {
+	buf := &bytes.Buffer{}
+	scionHost := loadHosts()
+	if len(scionHost) > 0 {
+		buf.WriteString(scionHost[0])
+	}
+	for _, s := range scionHost[1:] {
+		buf.WriteString("\n" + s)
+	}
+	w.Write(buf.Bytes())
 }
 
 type proxyHandler struct {
