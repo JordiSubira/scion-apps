@@ -17,12 +17,14 @@ package quicutil
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"sync"
 	"time"
 
 	"github.com/lucas-clemente/quic-go"
+	"github.com/netsec-ethz/scion-apps/pkg/pan"
 )
 
 var (
@@ -58,7 +60,13 @@ func (l SingleStreamListener) Accept() (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewSingleStream(session)
+	// This is at the moment just for presentation purposes and needs to be
+	// rewritten in the end...
+	s, ok := session.(*pan.QUICSession)
+	if !ok {
+		return nil, fmt.Errorf("No Valid pan quic Session")
+	}
+	return NewSingleStream(s)
 }
 
 // SingleStream implements an opaque, bi-directional data stream using QUIC,
@@ -70,7 +78,7 @@ func (l SingleStreamListener) Accept() (net.Conn, error) {
 //  - on the listener side: quic.Listener wrapped in SingleStreamListener, which
 //    returns SingleStream from Accept.
 type SingleStream struct {
-	Session       quic.Session
+	Session       *pan.QUICSession
 	sendStream    quic.SendStream
 	receiveStream quic.ReceiveStream
 	readDeadline  time.Time
@@ -79,12 +87,16 @@ type SingleStream struct {
 }
 
 func NewSingleStream(session quic.Session) (*SingleStream, error) {
+	s, ok := session.(*pan.QUICSession)
+	if !ok {
+		return nil, fmt.Errorf("No Valid pan quic Session")
+	}
 	sendStream, err := session.OpenUniStream()
 	if err != nil {
 		return nil, err
 	}
 	return &SingleStream{
-		Session:       session,
+		Session:       s,
 		sendStream:    sendStream,
 		receiveStream: nil,
 	}, nil
@@ -92,6 +104,10 @@ func NewSingleStream(session quic.Session) (*SingleStream, error) {
 
 func (s *SingleStream) LocalAddr() net.Addr {
 	return s.Session.LocalAddr()
+}
+
+func (s *SingleStream) GetPath() *pan.Path {
+	return s.Session.Conn.GetPath()
 }
 
 func (s *SingleStream) RemoteAddr() net.Addr {
