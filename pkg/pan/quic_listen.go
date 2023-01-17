@@ -39,10 +39,16 @@ func (l closerListener) Close() error {
 // ListenQUIC listens for QUIC connections on a SCION/UDP port.
 //
 // See note on wildcard addresses in the package documentation.
-func ListenQUIC(ctx context.Context, local netaddr.IPPort, selector ReplySelector,
-	tlsConf *tls.Config, quicConfig *quic.Config) (quic.Listener, error) {
+func ListenQUIC(
+	ctx context.Context,
+	local netaddr.IPPort,
+	selector ReplySelector,
+	allowedPaths []PathFingerprint,
+	tlsConf *tls.Config,
+	quicConfig *quic.Config,
+) (quic.Listener, error) {
 
-	conn, err := ListenUDP(ctx, local, selector)
+	conn, err := ListenUDP(ctx, local, selector, allowedPaths)
 	if err != nil {
 		return nil, err
 	}

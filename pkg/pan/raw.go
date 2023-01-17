@@ -23,6 +23,8 @@ import (
 
 	"github.com/scionproto/scion/go/lib/addr"
 	"github.com/scionproto/scion/go/lib/common"
+	"github.com/scionproto/scion/go/lib/log"
+	"github.com/scionproto/scion/go/lib/serrors"
 	"github.com/scionproto/scion/go/lib/slayers"
 	"github.com/scionproto/scion/go/lib/snet"
 	snetpath "github.com/scionproto/scion/go/lib/snet/path"
@@ -56,11 +58,12 @@ func openBaseUDPConn(ctx context.Context, local netaddr.IPPort) (snet.PacketConn
 // Currently this wraps snet.PacketConn/snet.SCIONPacketConn, but this logic
 // could easily be moved here too.
 type baseUDPConn struct {
-	raw         snet.PacketConn
-	readMutex   sync.Mutex
-	readBuffer  []byte
-	writeMutex  sync.Mutex
-	writeBuffer []byte
+	raw          snet.PacketConn
+	readMutex    sync.Mutex
+	readBuffer   []byte
+	writeMutex   sync.Mutex
+	writeBuffer  []byte
+	allowedPaths []PathFingerprint
 }
 
 func (c *baseUDPConn) SetDeadline(t time.Time) error {
@@ -169,8 +172,24 @@ func (c *baseUDPConn) readMsg(b []byte) (int, UDPAddr, ForwardingPath, error) {
 			dataplanePath: pkt.Path,
 			underlay:      underlay,
 		}
+		fp := fw.Fingerprint()
+		log.Debug("XXXJ", "allowed paths", c.allowedPaths, "coming path", fp)
+		// check if path is in allowed paths
+		var allowedError error
+		if c.allowedPaths != nil {
+			found := false
+			for i := range c.allowedPaths {
+				if c.allowedPaths[i] == fp {
+					found = true
+				}
+			}
+			if !found {
+				allowedError = serrors.New("path not allowed", "path fingerprint", fp)
+			}
+		}
+
 		n := copy(b, udp.Payload)
-		return n, remote, fw, nil
+		return n, remote, fw, allowedError
 	}
 }
 

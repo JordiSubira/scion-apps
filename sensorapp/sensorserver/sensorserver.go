@@ -82,7 +82,7 @@ func main() {
 	flag.Parse()
 
 	local := netaddr.IPPortFrom(netaddr.IP{}, uint16(*port))
-	conn, err := pan.ListenUDP(context.Background(), local, nil)
+	conn, err := pan.ListenUDP(context.Background(), local, nil, nil)
 	check(err)
 
 	receivePacketBuffer := make([]byte, 2500)

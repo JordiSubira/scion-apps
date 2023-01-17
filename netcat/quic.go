@@ -36,6 +36,7 @@ func DoListenQUIC(port uint16) (chan io.ReadWriteCloser, error) {
 		context.Background(),
 		netaddr.IPPortFrom(netaddr.IP{}, port),
 		nil,
+		nil,
 		&tls.Config{
 			Certificates: quicutil.MustGenerateSelfSignedCert(),
 			NextProtos:   nextProtos,

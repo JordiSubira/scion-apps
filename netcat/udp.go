@@ -73,6 +73,7 @@ func DoListenUDP(port uint16) (chan io.ReadWriteCloser, error) {
 		context.Background(),
 		netaddr.IPPortFrom(netaddr.IP{}, port),
 		nil,
+		nil,
 	)
 	if err != nil {
 		return nil, err

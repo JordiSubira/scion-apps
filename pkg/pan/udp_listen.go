@@ -26,7 +26,10 @@ import (
 	"inet.af/netaddr"
 )
 
-var errBadDstAddress error = errors.New("dst address not a UDPAddr")
+var (
+	errBadDstAddress  error = errors.New("dst address not a UDPAddr")
+	errNotAllowedPath error = errors.New("path is not allowed")
+)
 
 // ReplySelector controls the reply path in a **listening** socket. Stateful.
 type ReplySelector interface {
@@ -57,8 +60,12 @@ type ListenConn interface {
 	WriteToVia(b []byte, dst UDPAddr, path *Path) (int, error)
 }
 
-func ListenUDP(ctx context.Context, local netaddr.IPPort,
-	selector ReplySelector) (ListenConn, error) {
+func ListenUDP(
+	ctx context.Context,
+	local netaddr.IPPort,
+	selector ReplySelector,
+	allowedPaths []PathFingerprint,
+) (ListenConn, error) {
 
 	local, err := defaultLocalAddr(local)
 	if err != nil {
@@ -79,9 +86,12 @@ func ListenUDP(ctx context.Context, local netaddr.IPPort,
 		fmt.Printf("Listening addr=%s\n", slocal)
 	}
 
+	fmt.Printf("allowed paths: %v", allowedPaths)
+
 	return &listenConn{
 		baseUDPConn: baseUDPConn{
-			raw: raw,
+			raw:          raw,
+			allowedPaths: allowedPaths,
 		},
 		local:    slocal,
 		selector: selector,

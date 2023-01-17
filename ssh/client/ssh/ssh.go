@@ -202,7 +202,7 @@ func (client *Client) StartTunnel(local netaddr.IPPort, addr string) error {
 		tlsConf := &tls.Config{
 			NextProtos: []string{quicutil.SingleStreamProto},
 		}
-		ql, err := pan.ListenQUIC(context.Background(), local, nil, tlsConf, nil)
+		ql, err := pan.ListenQUIC(context.Background(), local, nil, nil, tlsConf, nil)
 		if err != nil {
 			return err
 		}

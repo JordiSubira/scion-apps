@@ -52,6 +52,14 @@ type ForwardingPath struct {
 	underlay netaddr.IPPort
 }
 
+func (p ForwardingPath) Fingerprint() PathFingerprint {
+	fwInfo, err := p.forwardingPathInfo()
+	if err != nil {
+		return PathFingerprint("")
+	}
+	return pathSequence{InterfaceIDs: fwInfo.interfaceIDs}.Fingerprint()
+}
+
 func (p ForwardingPath) forwardingPathInfo() (forwardingPathInfo, error) {
 	var raw []byte
 	switch dataplanePath := p.dataplanePath.(type) {
