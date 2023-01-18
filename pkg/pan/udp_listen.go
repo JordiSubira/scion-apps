@@ -27,8 +27,7 @@ import (
 )
 
 var (
-	errBadDstAddress  error = errors.New("dst address not a UDPAddr")
-	errNotAllowedPath error = errors.New("path is not allowed")
+	errBadDstAddress error = errors.New("dst address not a UDPAddr")
 )
 
 // ReplySelector controls the reply path in a **listening** socket. Stateful.
@@ -85,8 +84,6 @@ func ListenUDP(
 	if len(os.Getenv("SCION_GO_INTEGRATION")) > 0 {
 		fmt.Printf("Listening addr=%s\n", slocal)
 	}
-
-	fmt.Printf("allowed paths: %v", allowedPaths)
 
 	return &listenConn{
 		baseUDPConn: baseUDPConn{

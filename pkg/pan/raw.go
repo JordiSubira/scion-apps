@@ -32,6 +32,8 @@ import (
 	"inet.af/netaddr"
 )
 
+var PathNotAllowed = serrors.New("path not allowed")
+
 // openBaseUDPConn opens new raw SCION UDP conn.
 func openBaseUDPConn(ctx context.Context, local netaddr.IPPort) (snet.PacketConn, UDPAddr, error) {
 	dispatcher := host().dispatcher
@@ -172,19 +174,22 @@ func (c *baseUDPConn) readMsg(b []byte) (int, UDPAddr, ForwardingPath, error) {
 			dataplanePath: pkt.Path,
 			underlay:      underlay,
 		}
-		fp := fw.Fingerprint()
-		log.Debug("XXXJ", "allowed paths", c.allowedPaths, "coming path", fp)
 		// check if path is in allowed paths
 		var allowedError error
 		if c.allowedPaths != nil {
 			found := false
+			fp := fw.Fingerprint()
 			for i := range c.allowedPaths {
 				if c.allowedPaths[i] == fp {
 					found = true
 				}
 			}
 			if !found {
-				allowedError = serrors.New("path not allowed", "path fingerprint", fp)
+				log.Debug("ignoring packet, path is not allowed",
+					"allowed paths", c.allowedPaths,
+					"coming path", fp,
+				)
+				continue // in a similar fashion, ignore if path isn't allowed
 			}
 		}
 
