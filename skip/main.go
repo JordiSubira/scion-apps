@@ -230,15 +230,24 @@ func (h *policyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// Check if acl
+	var policy pan.Policy
 	var acl pan.ACL
 	err = acl.UnmarshalJSON(body)
+	policy = &acl
 	if err != nil {
-		fmt.Println("verbose: ", err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		fmt.Println("verbose: not ACL format, trying Sequence format out")
+		var sequence pan.Sequence
+		err2 := sequence.UnmarshalJSON(body)
+		if err2 != nil {
+			fmt.Println("verbose: ", err.Error(), err2.Error())
+			http.Error(w, err.Error()+" "+err2.Error(), http.StatusBadRequest)
+			return
+		}
+		policy = sequence
 	}
-	h.output.SetPolicy(&acl)
-	fmt.Println("verbose: ", "ACL policy = ", acl.String())
+	h.output.SetPolicy(policy)
+	fmt.Println("verbose: ", "Policy = ", string(body))
 	w.WriteHeader(http.StatusOK)
 }
 

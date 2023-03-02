@@ -118,6 +118,11 @@ func (s Sequence) Filter(paths []*Path) []*Path {
 	return ps
 }
 
+func (s Sequence) UnmarshalJSON(input []byte) error {
+	s.sequence = &pathpol.Sequence{}
+	return s.sequence.UnmarshalJSON(input)
+}
+
 // ACL is a policy filtering paths matching an ACL pattern. The ACL pattern is
 // an ordered list of allow/deny actions over hop predicates.
 // See https://scion.docs.anapaya.net/en/latest/PathPolicy.html#acl.
