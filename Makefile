@@ -22,6 +22,7 @@ build: scion-bat \
 	scion-ssh scion-sshd \
 	scion-webapp \
 	scion-web-gateway \
+	scion-web-forwarder \
 	example-helloworld \
 	example-helloquic \
 	example-hellodrkey \
@@ -97,6 +98,10 @@ scion-webapp:
 .PHONY: scion-web-gateway
 scion-web-gateway:
 	go build -tags=$(TAGS) -o $(BIN)/$@ ./web-gateway/
+
+.PHONY: scion-web-forwarder
+scion-web-forwarder:
+	go build -tags=$(TAGS) -o $(BIN)/$@ ./web-forwarder/
 
 .PHONY: example-helloworld
 example-helloworld:

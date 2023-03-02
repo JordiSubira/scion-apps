@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// 19-ffaa:1:f5c#1 19-ffaa:0:1303#370,1 19-ffaa:0:1301#5,3 18-ffaa:0:1201#5,8 18-ffaa:0:1206#1,128 18-ffaa:1:feb#1
+
 package main
 
 import (
@@ -37,9 +39,10 @@ import (
 )
 
 func main() {
-	var localAddr *net.TCPAddr
+	var localAddr, endpointAddr *net.TCPAddr
 	pathToFile := kingpin.Flag("acl", "Path to Path-based Access Control List").Default("").String()
-	kingpin.Flag("addr", "Local addr to translate to SCION").Required().TCPVar(&localAddr)
+	kingpin.Flag("local-addr", "Local addr listening to SCION connections").Required().TCPVar(&localAddr)
+	kingpin.Flag("endpoint-addr", "Address of the legacy TCP/IP endpoint").Required().TCPVar(&endpointAddr)
 	kingpin.Parse()
 
 	logCfg := slog.Config{Console: slog.ConsoleConfig{Level: "debug"}}
@@ -55,7 +58,7 @@ func main() {
 	}
 
 	// Proxy HTTPS, forward the entire TLS traffic data
-	log.Fatalf("%s", forwardTLS(localAddr.String(), acl))
+	log.Fatalf("%s", forwardTLS(endpointAddr.String(), localAddr.String(), acl))
 }
 
 func readACL(pathToFile string) ([]pan.PathFingerprint, error) {
@@ -84,8 +87,8 @@ func readACL(pathToFile string) ([]pan.PathFingerprint, error) {
 
 // forwardTLS listens on 443 and forwards each sessions to the corresponding
 // TCP/IP host identified by SNI
-func forwardTLS(addrStr string, acl []pan.PathFingerprint) error {
-	addr, err := netaddr.ParseIPPort(addrStr)
+func forwardTLS(endpointAddrStr, localAddrStr string, acl []pan.PathFingerprint) error {
+	addr, err := netaddr.ParseIPPort(localAddrStr)
 	if err != nil {
 		return err
 	}
@@ -99,19 +102,19 @@ func forwardTLS(addrStr string, acl []pan.PathFingerprint) error {
 		if err != nil {
 			return err
 		}
-		go forwardTLSSession(sess)
+		go forwardTLSSession(endpointAddrStr, sess)
 	}
 
 }
 
 // forwardTLS forwards traffic for sess to the corresponding TCP/IP host
 // identified by SNI.
-func forwardTLSSession(sess quic.Session) {
+func forwardTLSSession(endpointAddr string, sess quic.Session) {
 	clientConn, err := quicutil.NewSingleStream(sess)
 	if err != nil {
 		return
 	}
-	dstConn, err := net.Dial("tcp", "127.0.0.1:443")
+	dstConn, err := net.Dial("tcp", endpointAddr)
 	if err != nil {
 		logForwardTLS(sess.RemoteAddr(), 503)
 		_ = sess.CloseWithError(503, "service unavailable")
