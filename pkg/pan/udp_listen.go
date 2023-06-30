@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/scionproto/scion/go/lib/addr"
 	"inet.af/netaddr"
 )
 
@@ -63,7 +64,7 @@ func ListenUDP(
 	ctx context.Context,
 	local netaddr.IPPort,
 	selector ReplySelector,
-	allowedPaths []PathFingerprint,
+	allowedPaths map[addr.IA][]PathFingerprint,
 ) (ListenConn, error) {
 
 	local, err := defaultLocalAddr(local)

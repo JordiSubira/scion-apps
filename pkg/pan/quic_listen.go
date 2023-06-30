@@ -20,6 +20,7 @@ import (
 	"net"
 
 	"github.com/lucas-clemente/quic-go"
+	"github.com/scionproto/scion/go/lib/addr"
 	"inet.af/netaddr"
 )
 
@@ -43,7 +44,7 @@ func ListenQUIC(
 	ctx context.Context,
 	local netaddr.IPPort,
 	selector ReplySelector,
-	allowedPaths []PathFingerprint,
+	allowedPaths map[addr.IA][]PathFingerprint,
 	tlsConf *tls.Config,
 	quicConfig *quic.Config,
 ) (quic.Listener, error) {

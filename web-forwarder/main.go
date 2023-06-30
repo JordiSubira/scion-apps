@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/lucas-clemente/quic-go"
+	"github.com/scionproto/scion/go/lib/addr"
 	slog "github.com/scionproto/scion/go/lib/log"
 	"gopkg.in/alecthomas/kingpin.v2"
 	"inet.af/netaddr"
@@ -61,7 +62,7 @@ func main() {
 	log.Fatalf("%s", forwardTLS(endpointAddr.String(), localAddr.String(), acl))
 }
 
-func readACL(pathToFile string) ([]pan.PathFingerprint, error) {
+func readACL(pathToFile string) (map[addr.IA][]pan.PathFingerprint, error) {
 	if pathToFile == "" {
 		slog.Info("WARNING: Not ACL file provided. Accepting any paths...")
 		return nil, nil
@@ -75,19 +76,18 @@ func readACL(pathToFile string) ([]pan.PathFingerprint, error) {
 	if err != nil {
 		return nil, err
 	}
-	var acl map[string][]pan.PathFingerprint
+	var acl map[addr.IA][]pan.PathFingerprint
 	err = json.Unmarshal(rawFile, &acl)
 	if err != nil {
 		return nil, err
 	}
 	slog.Info("read ACL on", "pathToFile", pathToFile)
-	slog.Debug("ACL", "paths", acl["paths"])
-	return acl["paths"], nil
+	return acl, nil
 }
 
 // forwardTLS listens on 443 and forwards each sessions to the corresponding
 // TCP/IP host identified by SNI
-func forwardTLS(endpointAddrStr, localAddrStr string, acl []pan.PathFingerprint) error {
+func forwardTLS(endpointAddrStr, localAddrStr string, acl map[addr.IA][]pan.PathFingerprint) error {
 	addr, err := netaddr.ParseIPPort(localAddrStr)
 	if err != nil {
 		return err
@@ -161,7 +161,7 @@ func transfer(dst io.WriteCloser, src io.ReadCloser) {
 	}
 }
 
-func listen(laddr netaddr.IPPort, allowedPaths []pan.PathFingerprint) (quic.Listener, error) {
+func listen(laddr netaddr.IPPort, allowedPaths map[addr.IA][]pan.PathFingerprint) (quic.Listener, error) {
 	tlsCfg := &tls.Config{
 		NextProtos:   []string{quicutil.SingleStreamProto},
 		Certificates: quicutil.MustGenerateSelfSignedCert(),

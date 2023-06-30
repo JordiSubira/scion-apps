@@ -65,7 +65,7 @@ type baseUDPConn struct {
 	readBuffer   []byte
 	writeMutex   sync.Mutex
 	writeBuffer  []byte
-	allowedPaths []PathFingerprint
+	allowedPaths map[addr.IA][]PathFingerprint
 }
 
 func (c *baseUDPConn) SetDeadline(t time.Time) error {
@@ -177,25 +177,39 @@ func (c *baseUDPConn) readMsg(b []byte) (int, UDPAddr, ForwardingPath, error) {
 		// check if path is in allowed paths
 		var allowedError error
 		if c.allowedPaths != nil {
-			found := false
-			fp := fw.Fingerprint()
-			for i := range c.allowedPaths {
-				if c.allowedPaths[i] == fp {
-					found = true
-				}
-			}
-			if !found {
-				log.Debug("ignoring packet, path is not allowed",
-					"allowed paths", c.allowedPaths,
-					"coming path", fp,
-				)
-				continue // in a similar fashion, ignore if path isn't allowed
+			fpp := fw.Fingerprint()
+			if !c.FilterPacket(pkt, fpp) {
+				continue
 			}
 		}
 
 		n := copy(b, udp.Payload)
 		return n, remote, fw, allowedError
 	}
+}
+
+func (c *baseUDPConn) FilterPacket(pkt snet.Packet, fp PathFingerprint) bool {
+	fps, ok := c.allowedPaths[pkt.Source.IA]
+	if !ok {
+		log.Debug("ignoring packet, src IA not in the list",
+			"source IA", pkt.Source.IA,
+		)
+		return false // in a similar fashion, ignore if path isn't allowed
+	}
+	found := false
+	for i := range fps {
+		if fps[i] == fp {
+			found = true
+		}
+	}
+	if !found {
+		log.Debug("ignoring packet, path is not allowed",
+			"allowed paths", fps,
+			"coming path", fp,
+		)
+		return false // in a similar fashion, ignore if path isn't allowed
+	}
+	return true
 }
 
 func (c *baseUDPConn) Close() error {

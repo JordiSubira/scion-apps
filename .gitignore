@@ -30,6 +30,7 @@ webapp/web/data
 .jshintrc
 .project
 .settings/
+.vscode/
 
 *.log
 
@@ -44,3 +45,6 @@ bin/
 
 # IntelliJ IDEA workspace
 .idea/
+
+env/
+__pycache__
